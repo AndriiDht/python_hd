@@ -108,48 +108,9 @@ def do_round(a, b, c, d, e, f, g, h, key, word):
     hamming_distance += bin(h ^ old_h).count('1')
     return a, b, c, d, e, f, g, h, hamming_distance
 
-
-def test0():
-    word0 = [0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-             0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-             0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-             0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff]
-    h0, h1, h2, h3, h4, h5, h6, h7 = sha256(word0)
-    assert (h0, h1, h2, h3, h4, h5, h6, h7) == \
-           (0xef0c748d, 0xf4da50a8, 0xd6c43c01, 0x3edc3ce7, 0x6c9d9fa9, 0xa1458ade, 0x56eb86c0, 0xa64492d2)
-
-
-def test1():
-    word1 = [0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-             0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-             0x0, 0x0, 0x0, 0x0,
-             0x0, 0x0, 0x0, 0x0, ]
-    h0, h1, h2, h3, h4, h5, h6, h7 = sha256(word1)
-    assert (h0, h1, h2, h3, h4, h5, h6, h7) == \
-           (0xc2c9f7b1, 0x39346d8e, 0xf59b77e9, 0x2cd6ce3c, 0x114a35b7, 0x20f95a23, 0xad4a35c8, 0x3bba1e7e)
-
-
-def do_tests():
-    test0()
-    test1()
-
-
 if __name__ == "__main__":
-    word1 = [0xB444681D, 0x19EF2A35, 0x5B5E952B, 0x38D65656,
-             0xB444681D, 0x19EF2A35, 0x5B5E952B, 0x38D65656,
-             0x2B7E1516, 0x28AED2A6, 0xABF71588, 0x09CF4F3C,
-             0x2B7E1516, 0x28AED2A6, 0xABF71588, 0x09CF4F3C, ]
-
-    word2 = [0x2CBD735F, 0xB69496E4, 0x5A981F11, 0xD13EDEE3,
-             0x2CBD735F, 0xB69496E4, 0x5A981F11, 0xD13EDEE3,
-             0x2B7E1516, 0x28AED2A6, 0xABF71588, 0x09CF4F3C,
-             0x2B7E1516, 0x28AED2A6, 0xABF71588, 0x09CF4F3C, ]
-
-    # do_tests()
-    next_input = word1
-
     with trs_open('trace-set.trs', 'w', engine='TrsEngine', padding_mode=TracePadding.AUTO, live_update=True) as trs_file:
-        for i in range(250000):
+        for i in range(2 * (10 ** 6)):
             if (i % 1000 == 0):
                 print(f'{i} traces written!\r')
             h0, h1, h2, h3, h4, h5, h6, h7 = sha256([struct.unpack('>I', os.urandom(4))[0] for i in range(16)], trs_file)

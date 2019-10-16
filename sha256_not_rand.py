@@ -67,8 +67,9 @@ def sha256(word, trs_file):
     # main cycle
     one_trace = []
     for i in range(64):
-        a, b, c, d, e, f, g, h, hamming_distance = do_round(a, b, c, d, e, f, g, h, K[i], word[i])
-        one_trace.append(hamming_distance)
+        a, b, c, d, e, f, g, h, hamming_distance = do_round(a, b, c, d, e, f, g, h, K[i], word[i], bool(i < 16 and i % 2 == 0))
+        if i < 16 and i % 2 == 0:
+            one_trace.append(hamming_distance)
 
     h0 = (h0 + a) & mask32bit
     h1 = (h1 + b) & mask32bit
@@ -83,7 +84,7 @@ def sha256(word, trs_file):
     return h0, h1, h2, h3, h4, h5, h6, h7,
 
 
-def do_round(a, b, c, d, e, f, g, h, key, word):
+def do_round(a, b, c, d, e, f, g, h, key, word, record):
     old_a, old_b, old_c, old_d, old_e, old_f, old_g, old_h = a, b, c, d, e, f, g, h
     tmp = uint32((Sigma1(e) + Ch(e, f, g) + h + key) & mask32bit)
     preA = uint32((Sigma0(a) + Maj(a, b, c) + tmp) & mask32bit)
@@ -98,59 +99,26 @@ def do_round(a, b, c, d, e, f, g, h, key, word):
     b = a
     a = (preA + word) & mask32bit
 
-    hamming_distance = bin(a ^ old_a).count('1')
-    hamming_distance += bin(b ^ old_b).count('1')
-    hamming_distance += bin(c ^ old_c).count('1')
-    hamming_distance += bin(d ^ old_d).count('1')
-    hamming_distance += bin(e ^ old_e).count('1')
-    hamming_distance += bin(f ^ old_f).count('1')
-    hamming_distance += bin(g ^ old_g).count('1')
-    hamming_distance += bin(h ^ old_h).count('1')
+    hamming_distance = 0
+    if (record):
+        hamming_distance += bin(a ^ old_a).count('1')
+        hamming_distance += bin(b ^ old_b).count('1')
+        hamming_distance += bin(c ^ old_c).count('1')
+        hamming_distance += bin(d ^ old_d).count('1')
+        hamming_distance += bin(e ^ old_e).count('1')
+        hamming_distance += bin(f ^ old_f).count('1')
+        hamming_distance += bin(g ^ old_g).count('1')
+        hamming_distance += bin(h ^ old_h).count('1')
     return a, b, c, d, e, f, g, h, hamming_distance
 
-
-def test0():
-    word0 = [0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-             0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-             0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-             0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff]
-    h0, h1, h2, h3, h4, h5, h6, h7 = sha256(word0)
-    assert (h0, h1, h2, h3, h4, h5, h6, h7) == \
-           (0xef0c748d, 0xf4da50a8, 0xd6c43c01, 0x3edc3ce7, 0x6c9d9fa9, 0xa1458ade, 0x56eb86c0, 0xa64492d2)
-
-
-def test1():
-    word1 = [0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-             0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff,
-             0x0, 0x0, 0x0, 0x0,
-             0x0, 0x0, 0x0, 0x0, ]
-    h0, h1, h2, h3, h4, h5, h6, h7 = sha256(word1)
-    assert (h0, h1, h2, h3, h4, h5, h6, h7) == \
-           (0xc2c9f7b1, 0x39346d8e, 0xf59b77e9, 0x2cd6ce3c, 0x114a35b7, 0x20f95a23, 0xad4a35c8, 0x3bba1e7e)
-
-
-def do_tests():
-    test0()
-    test1()
-
-
 if __name__ == "__main__":
-    word1 = [0xB444681D, 0x19EF2A35, 0x5B5E952B, 0x38D65656,
-             0xB444681D, 0x19EF2A35, 0x5B5E952B, 0x38D65656,
-             0x2B7E1516, 0x28AED2A6, 0xABF71588, 0x09CF4F3C,
-             0x2B7E1516, 0x28AED2A6, 0xABF71588, 0x09CF4F3C, ]
-
-    word2 = [0x2CBD735F, 0xB69496E4, 0x5A981F11, 0xD13EDEE3,
-             0x2CBD735F, 0xB69496E4, 0x5A981F11, 0xD13EDEE3,
-             0x2B7E1516, 0x28AED2A6, 0xABF71588, 0x09CF4F3C,
-             0x2B7E1516, 0x28AED2A6, 0xABF71588, 0x09CF4F3C, ]
-
-    # do_tests()
     with trs_open('sha256_hd_samekey.trs', 'w', engine='TrsEngine', padding_mode=TracePadding.AUTO, live_update=True) as trs_file:
-        for i in range(1000000):
+        for i in range(10 ** 6):
             if (i % 1000 == 0):
                 print(f'{i} traces written!\r')
-            h0, h1, h2, h3, h4, h5, h6, h7 = sha256([item for item in word1], trs_file)
+            not_rand_input = [0x2B7E1516, 0x28AED2A6, 0xABF71588, 0x09CF4F3C, 0x2B7E1516, 0x28AED2A6, 0xABF71588, 0x09CF4F3C]
+            rand_tail = [struct.unpack('>I', os.urandom(4))[0] for i in range(8)]
+            h0, h1, h2, h3, h4, h5, h6, h7 = sha256(not_rand_input + rand_tail, trs_file)
             next_input = [h0, h1, h2, h3, h4, h5, h6, h7]
 
 
